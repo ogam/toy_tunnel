@@ -1,0 +1,107 @@
+layout (set = 3, binding = 1) uniform shd_uniforms
+{
+	int u_disabled;
+	int u_use_color_band;
+	int u_color_type;
+};
+
+float PI = 3.14159265359;
+float band_width = 64.0;
+
+vec4 angle_to_color(float angle)
+{
+	return vec4(
+		(cos(angle                 ) + 1.0) / 2.0,
+		(cos(angle + 2.0 * PI / 3.0) + 1.0) / 2.0,
+		(cos(angle + 4.0 * PI / 3.0) + 1.0) / 2.0,
+		1.0);
+}
+
+vec4 angle_to_color_band(float angle)
+{
+	angle = angle * 180.0 / PI;
+	angle = floor(angle / band_width) * band_width;
+	angle = angle * PI / 180.0;
+	return angle_to_color(angle);
+}
+
+vec4 tunnel_ring_color(vec2 pos, vec2 ring_center)
+{
+	vec2 uv = pos - ring_center;
+	float angle = atan(uv.y, uv.x);
+	if (u_use_color_band > 0)
+	{
+		return angle_to_color_band(angle) * 0.2;
+	}
+	return angle_to_color(angle) * 0.2;
+}
+
+vec4 tunnel_object_gradient(vec2 pos, vec2 object_center, float radius, float angle)
+{
+	float distance01 = clamp(length(pos - object_center) / radius, 0.0, 1.0);
+	vec3 ring_color = angle_to_color(angle).xyz;
+	vec3 blended_color = mix(vec3(1.0), ring_color, pow(distance01, 1.3));
+	return vec4(blended_color * 1.6, 1.0);
+}
+
+vec4 tunnel_object_color(float angle, float t)
+{
+	if (u_use_color_band > 0)
+	{
+		return mix(angle_to_color_band(angle), vec4(1.0), pow(t, 0.02 / t));
+	}
+	return mix(angle_to_color(angle), vec4(1.0), pow(t, 0.02 / t));
+}
+
+vec4 tunnel_object_gradient_grayscale(vec2 pos, vec2 object_center, float radius)
+{
+	float distance01 = clamp(length(pos - object_center) / radius, 0.0, 1.0);
+	vec3 blended_color = mix(vec3(1.0), vec3(0.0), pow(distance01, 1.3));
+	return vec4(blended_color * 1.6, 1.0);
+}
+
+// tunnel ring color
+// u_color_type == 0
+// params.xy -> position
+
+// tunnel object gradient
+// u_color_type == 1
+// params.xy -> position
+// params.z -> radius
+// params.w -> angle
+
+// tunnel object
+// u_color_type == 2
+// params.x -> angle
+// params.y -> color_mix_t
+
+// tunnel object gradient grayscale
+// u_color_type == 3
+// params.xy -> position
+// params.z -> radius
+
+vec4 shader(vec4 color, vec2 pos, vec2 screen_uv, vec4 params)
+{
+	vec4 c = vec4(1.0);
+	if (u_disabled == 0)
+	{
+		if (u_color_type == 0)
+		{
+			return tunnel_ring_color(pos, params.xy) * color;
+		}
+		else if (u_color_type == 1)
+		{
+			return tunnel_object_gradient(pos, params.xy, params.z, params.w) * color;
+		}
+		else if (u_color_type == 2)
+		{
+			return tunnel_object_color(params.x, params.y) * color;
+		}
+		else if (u_color_type == 3)
+		{
+			return tunnel_object_gradient_grayscale(pos, params.xy, params.z) * color;
+		}
+	}
+	
+	return color;
+}
