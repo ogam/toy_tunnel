@@ -134,6 +134,7 @@ void update_ui()
     ui->cursor = cf_v2(0.0f, 0.0f);
     ui->layout = UI_Layout_None;
     ui->interactable_item_counter = 0;
+    ui->scale = cf_min(s_app->screen_scale.x, s_app->screen_scale.y);
     
     update_ui_input();
     
@@ -311,6 +312,10 @@ void draw_ui()
     cf_draw_push();
     cf_draw_scale_v2(cf_safe_invert(s_app->screen_scale));
     
+    //  @hack  broke something with text and render scale for UI, this should be fixed so this part isn't needed
+    //         this is very noticable when screen_scale.xy > 2 as things start to offset more vertically
+    f32 text_y_offset = 0.75f * (1.0f - cf_safe_invert(s_app->screen_scale.y));
+    
     for (s32 index = 0; index < cf_array_count(ui->items); ++index)
     {
         UI_Item* item = ui->items + index;
@@ -319,12 +324,13 @@ void draw_ui()
         {
             case UI_Item_Type_Text:
             {
+                cf_draw_push();
+                cf_draw_TSR(cf_top_left(item->text_aabb), cf_v2(1.0f, 1.0f), 0.0f);
+                
                 cf_push_font_size(item->font_size);
                 cf_draw_push_color(item->text_color);
                 
-                cf_draw_push();
-                cf_draw_TSR(cf_top_left(item->text_aabb), cf_v2(1.0f, 1.0f), 0.0f);
-                cf_draw_text(item->text, cf_v2(0, 0), -1);
+                cf_draw_text(item->text, cf_v2(0, text_y_offset * item->font_size), -1);
                 cf_draw_pop();
                 
                 cf_draw_pop_color();
@@ -346,7 +352,7 @@ void draw_ui()
                 
                 cf_draw_push();
                 cf_draw_TSR(cf_top_left(item->text_aabb), cf_v2(1.0f, 1.0f), 0.0f);
-                cf_draw_text(item->text, cf_v2(0, 0), -1);
+                cf_draw_text(item->text, cf_v2(0, text_y_offset * item->font_size), -1);
                 cf_draw_pop();
                 
                 cf_draw_pop_color();
@@ -355,7 +361,7 @@ void draw_ui()
             }
             case UI_Item_Type_Slider:
             {
-                f32 spacing = 10.0f;
+                f32 spacing = 10.0f * ui->scale;
                 
                 CF_V2 extents = cf_extents(item->text_aabb);
                 
@@ -364,11 +370,11 @@ void draw_ui()
                 
                 cf_draw_push();
                 cf_draw_TSR(cf_top_left(item->text_aabb), cf_v2(1.0f, 1.0f), 0.0f);
-                cf_draw_text(item->text, cf_v2(0, 0), -1);
+                cf_draw_text(item->text, cf_v2(0, text_y_offset * item->font_size), -1);
                 
                 if (ui->next_hash == item->hash)
                 {
-                    f32 arrow_width = cf_peek_font_size() * 0.25f;
+                    f32 arrow_width = item->font_size * 0.25f;
                     // left arrow
                     {
                         CF_V2 p0 = cf_v2(-spacing, 0.0f);
@@ -434,8 +440,9 @@ UI_Item* ui_make_item(UI_Item_Type type, const char* fmt, va_list args)
 {
     UI* ui = &s_app->ui;
     
-    f32 padding = 5.0f;
-    f32 item_padding = 10.0f;
+    f32 padding = 5.0f * ui->scale;
+    f32 item_padding = 10.0f * ui->scale;
+    f32 font_size = cf_peek_font_size() * ui->scale;
     
     UI_Item new_item = { 0 };
     cf_array_push(ui->items, new_item);
@@ -443,7 +450,10 @@ UI_Item* ui_make_item(UI_Item_Type type, const char* fmt, va_list args)
     UI_Item* item = &cf_array_last(ui->items);
     item->text = ui_text_vfmt(fmt, args);
     
+    cf_push_font_size(font_size);
     CF_V2 text_size = cf_text_size(item->text, -1);
+    cf_pop_font_size();
+    
     CF_V2 position = ui->cursor;
     CF_V2 origin = position;
     
@@ -499,7 +509,7 @@ UI_Item* ui_make_item(UI_Item_Type type, const char* fmt, va_list args)
     item->aabb = aabb;
     item->type = type;
     item->origin = origin;
-    item->font_size = cf_peek_font_size();
+    item->font_size = font_size;
     
     char hash_buffer[4096];
     s32 hash_length = 0;
@@ -861,7 +871,7 @@ void ui_do_options()
     
     cf_push_font_size(32.0f);
     ui_do_text("Audio");
-    ui_do_slider(&audio->volume, 0.0f, 1.0f, 0.25f);
+    ui_do_slider(&audio->volume, 0.0f, 1.0f, 0.05f);
     if (ui_do_button("Keyboard Bindings"))
     {
         ui->options_state = UI_Options_State_Keyboard;
@@ -877,6 +887,7 @@ void ui_do_options()
     if (ui_do_button("Back") || ui->input.menu)
     {
         ui->options_state = UI_Options_State_None;
+        save_configs();
     }
     
     cf_pop_font_size();

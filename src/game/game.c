@@ -95,6 +95,8 @@ void init()
         input->deadzone_x = cf_v2(-0.1f, 0.1f);
         input->deadzone_y = cf_v2(-0.1f, 0.1f);
     }
+    
+    load_configs();
 }
 
 void handle_window_events()
@@ -263,6 +265,184 @@ void update(void* udata)
     draw_ui();
     
     //ImGui_PopFont();
+}
+
+CF_KeyButton string_to_key(const char* name)
+{
+    CF_KeyButton key = CF_KEY_COUNT;
+    
+    if (name)
+    {
+        for (s32 index = 0; index < CF_KEY_COUNT; ++index)
+        {
+            CF_KeyButton current_key = (CF_KeyButton)index;
+            if (cf_string_equ(name, cf_key_button_to_string(current_key)))
+            {
+                key = current_key;
+                break;
+            }
+        }
+    }
+    
+    return key;
+}
+
+CF_JoypadButton string_to_button(const char* name)
+{
+    CF_JoypadButton button = CF_JOYPAD_BUTTON_COUNT;
+    
+    if (name)
+    {
+        for (s32 index = 0; index < CF_JOYPAD_BUTTON_COUNT; ++index)
+        {
+            CF_JoypadButton current_button = (CF_JoypadButton)index;
+            if (cf_string_equ(name, cf_joypad_button_to_string(current_button)))
+            {
+                button = current_button;
+                break;
+            }
+        }
+    }
+    
+    return button;
+}
+
+
+void load_configs()
+{
+    mount_root_read_directory();
+    if (cf_fs_file_exists("settings.txt"))
+    {
+        size_t file_size = 0;
+        char* file = (char*)cf_fs_read_entire_file_to_memory("settings.txt", &file_size);
+        char* walker = file;
+        char* line_end = NULL;
+        char buffer[1024];
+        
+        Input* input = &s_app->input;
+        
+        line_end = cf_string_find(walker, "\n");
+        CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+        buffer[line_end - walker] = '\0';
+        s_app->audio.volume = cf_string_tofloat(buffer);
+        walker = line_end + 1;
+        
+        // keyboard
+        {
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->up_key = string_to_key(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->down_key = string_to_key(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->left_key = string_to_key(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->right_key = string_to_key(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->fire_key = string_to_key(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->secondary_fire_key = string_to_key(buffer);
+        }
+        
+        // controller
+        {
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->fire_button = string_to_button(buffer);
+            
+            line_end = cf_string_find(walker, "\n");
+            CF_MEMCPY(buffer, walker, (s32)(line_end - walker));
+            buffer[line_end - walker] = '\0';
+            walker = line_end + 1;
+            input->secondary_fire_button = string_to_button(buffer);
+        }
+        
+        cf_free(file);
+    }
+    dismount_root_directory();
+}
+
+void save_configs()
+{
+    CF_File *file = NULL;
+    mount_root_read_directory();
+    mount_root_write_directory();
+    if (cf_fs_file_exists("settings.txt"))
+    {
+        file = cf_fs_open_file_for_write("settings.txt");;
+    }
+    else
+    {
+        file = cf_fs_create_file("settings.txt");;
+    }
+    
+    if (file)
+    {
+        char buffer[1024];
+        s32 length;
+        
+        Input* input = &s_app->input;
+        
+        {
+            length = snprintf(buffer, sizeof(buffer), "%.2f\n", s_app->audio.volume);
+            cf_fs_write(file, buffer, length);
+        }
+        // keyboard
+        {
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->up_key));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->down_key));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->left_key));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->right_key));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->fire_key));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_key_button_to_string(input->secondary_fire_key));
+            cf_fs_write(file, buffer, length);
+        }
+        
+        // controller
+        {
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_joypad_button_to_string(input->fire_button));
+            cf_fs_write(file, buffer, length);
+            
+            length = snprintf(buffer, sizeof(buffer), "%s\n", cf_joypad_button_to_string(input->secondary_fire_button));
+            cf_fs_write(file, buffer, length);
+        }
+        
+        cf_fs_close(file);
+    }
 }
 
 #include "assets/assets.c"

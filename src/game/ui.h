@@ -1,3 +1,6 @@
+// UI was made in a very short period of time and very bug prone
+// not ideal to use in other projects
+
 #ifndef UI_H
 #define UI_H
 
@@ -66,6 +69,7 @@ typedef struct UI
     UI_Layout layout;
     CF_V2 cursor;
     s32 interactable_item_counter;
+    f32 scale;
     
     u64 next_hash;
     

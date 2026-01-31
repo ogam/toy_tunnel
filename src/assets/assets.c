@@ -22,6 +22,27 @@ char* mount_get_directory_path()
     return path;
 }
 
+void mount_root_read_directory()
+{
+    char *path = mount_get_directory_path();
+    cf_fs_mount(path, "/", false);
+    cf_string_free(path);
+}
+
+void mount_root_write_directory()
+{
+    char *path = mount_get_directory_path();
+    cf_fs_set_write_directory(path);
+    cf_string_free(path);
+}
+
+void dismount_root_directory()
+{
+    char *path = mount_get_directory_path();
+    cf_fs_dismount(path);
+    cf_string_free(path);
+}
+
 void mount_data_read_directory()
 {
     char *path = mount_get_directory_path();
