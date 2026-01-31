@@ -2,6 +2,9 @@
 #define ASSETS_H
 
 char* mount_get_directory_path();
+void mount_root_read_directory();
+void mount_root_write_directory();
+void dismount_root_directory();
 void mount_data_read_directory();
 void mount_data_write_directory();
 void dismount_data_directory();

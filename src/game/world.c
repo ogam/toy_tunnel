@@ -530,7 +530,6 @@ inline void tunnel_ring_calculate_path_terms(f32 t)
 }
 
 // main tunnel path for gameplay arena
-// t tunnel sway
 // z depth of tunnel
 inline CF_V2 tunnel_ring_position(f32 z)
 {
@@ -818,7 +817,7 @@ ecs_entity_t make_bullet_eater(Bullet_Params params, f32 strength01)
     collider->radius = BULLET_EATER_COLLIDER_RADIUS * (1.0f + strength01);
     transform->draw_radius = collider->radius;
     
-    bullet->damage = (s32)(1000 * (1.0f * strength01));
+    bullet->damage = (s32)(1000 * strength01);
     bullet->is_destroy_on_hit = false;
     
     audio_play_sfx("bullet_eater_fire");
