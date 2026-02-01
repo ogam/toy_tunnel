@@ -1,10 +1,11 @@
 # Toy Tunnel
 
 Small shoot'em up game going through a tunnel.  
+
 Has 3 modes Easy, Normal, Hard.  
 
 # Screenshots
-<video src="https://github.com/user-attachments/assets/f7fc3ddc-1e5f-4ea2-98a4-2905a9cb1f98" width="352" height="720"></video>
+<video src="https://github.com/user-attachments/assets/a0cc1ba5-25c8-4cc8-89c0-95b541608482" width="352" height="720"></video>
 <img src="resources/1.png"></img>
 <img src="resources/2.png"></img>
 
