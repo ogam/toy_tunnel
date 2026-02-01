@@ -1,0 +1,6 @@
+.gitignore
+.*
+build
+build_web
+*.4coder
+settings.txt
